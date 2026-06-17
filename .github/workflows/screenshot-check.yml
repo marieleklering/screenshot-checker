@@ -1,0 +1,91 @@
+name: Screenshot Accuracy Check
+
+on:
+  schedule:
+    # Runs on the schedule defined in config.yml
+    # Default: every Monday at 9am UTC
+    # Edit the cron value in config.yml to change this
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    # Also allows manual runs from the Actions tab in GitHub
+
+jobs:
+  check-screenshots:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Run screenshot comparison
+        id: compare
+        run: node compare.js
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # If using password auth, add your credentials as GitHub secrets
+          # and reference them here:
+          # PRODUCT_USERNAME: ${{ secrets.PRODUCT_USERNAME }}
+          # PRODUCT_PASSWORD: ${{ secrets.PRODUCT_PASSWORD }}
+
+      - name: Upload live screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-live
+          path: screenshots/live/
+          retention-days: 30
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-report
+          path: report.md
+          retention-days: 30
+
+      - name: Create or update GitHub Issue if screenshots need updating
+        if: steps.compare.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('report.md', 'utf8');
+
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'screenshot-drift'
+            });
+
+            if (issues.data.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: report + '\n\n---\n*Updated by automated check on ' + new Date().toUTCString() + '*'
+              });
+              console.log('Updated existing issue #' + issues.data[0].number);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'Documentation screenshots need updating',
+                body: report,
+                labels: ['screenshot-drift', 'documentation']
+              });
+              console.log('Created new issue');
+            }

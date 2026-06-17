@@ -1,0 +1,13 @@
+{
+    "name": "screenshot-checker",
+    "version": "1.0.0",
+    "description": "Automated documentation screenshot accuracy checker using Claude Vision",
+    "scripts": {
+        "check": "node compare.js",
+        "setup": "bash setup.sh"
+    },
+    "dependencies": {
+        "js-yaml": "^4.1.0",
+        "playwright": "^1.44.0"
+    }
+}

@@ -1,0 +1,74 @@
+# Screenshot Checker Configuration
+# ─────────────────────────────────
+# This is the only file you need to edit to get started.
+# Copy this file to config.yml and fill in your own values.
+
+# How sensitive the comparison should be.
+# "low"    - only flags significant layout or content changes (recommended to start)
+# "medium" - flags moderate changes including button labels, small text
+# "high"   - flags any visible difference
+sensitivity: low
+
+# How often to run the check (uses cron syntax).
+# Examples:
+#   "0 9 * * 1"    - every Monday at 9am UTC
+#   "0 9 * * 1,4"  - Monday and Thursday at 9am UTC
+#   "0 9 1 * *"    - first of every month
+# Use https://crontab.guru to build your own schedule.
+schedule: "0 9 * * 1"
+
+# Authentication (optional - remove this section if your product is public)
+auth:
+  # Options: "password", "session", "none"
+  # password - Playwright fills in a login form (credentials stored as GitHub secrets)
+  # session  - You export a session file manually (for SSO/OAuth products)
+  # none     - No authentication needed
+  type: "password"
+
+  # For type "password" only:
+  login_url: "https://yourproduct.com/login"
+  username_selector: "#email"
+  password_selector: "#password"
+  submit_selector: "button[type=submit]"
+  # Credentials come from GitHub secrets - do not put real values here
+  username_secret: "PRODUCT_USERNAME"
+  password_secret: "PRODUCT_PASSWORD"
+
+  # For type "session" only:
+  # session_file: "auth/session.json"
+
+# Your screenshots - add one entry per screenshot in your docs
+screenshots:
+  - id: dashboard-overview
+    # Human-readable label used in the report
+    label: "Dashboard overview"
+    # The URL where this screenshot lives
+    url: "https://yourproduct.com/dashboard"
+    # CSS selector for the specific region to capture
+    # Tip: right-click the element in your browser, click Inspect,
+    # then right-click the highlighted HTML and choose Copy > Copy selector
+    selector: "#main-content"
+    # Path to your reference screenshot (relative to repo root)
+    reference: "screenshots/reference/dashboard-overview.png"
+    # Which doc file this screenshot appears in
+    doc: "docs/getting-started.md"
+    # Elements to hide before screenshotting (timestamps, user avatars etc)
+    # These would otherwise trigger false positives on every run
+    mask:
+      - ".last-updated"
+      - ".user-avatar"
+
+  - id: settings-notifications
+    label: "Settings -- notifications panel"
+    url: "https://yourproduct.com/settings"
+    selector: "#notifications-panel"
+    reference: "screenshots/reference/settings-notifications.png"
+    doc: "docs/settings.md"
+    # No mask needed if there is no dynamic content in this region
+
+  - id: export-button
+    label: "Dashboard -- export button"
+    url: "https://yourproduct.com/dashboard"
+    selector: "#export-controls"
+    reference: "screenshots/reference/export-button.png"
+    doc: "docs/getting-started.md"
