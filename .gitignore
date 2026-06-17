@@ -1,3 +1,7 @@
+.DS_Store
+config.yml
+screenshots/reference/*
+!screenshots/reference/.gitkeep
 node_modules/
 screenshots/live/
 report.md
