@@ -4,6 +4,7 @@
     "description": "Automated documentation screenshot accuracy checker using Claude Vision",
     "scripts": {
         "check": "node compare.js",
+        "approve": "node approve.js",
         "setup": "bash setup.sh"
     },
     "dependencies": {

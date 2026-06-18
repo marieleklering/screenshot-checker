@@ -1,24 +1,36 @@
 # Screenshot Checker
 
-Automatically checks whether your documentation screenshots are still accurate against the live product. Runs on a schedule, compares screenshots using Claude Vision, and opens a GitHub Issue when something needs updating.
+Every two weeks a release ships. UI changes, buttons move, labels get renamed. And somewhere in the docs, a screenshot is now lying to your users.
+
+I built screenshot-checker to fix that. It automatically compares your documentation screenshots against the live product and tells you exactly what changed, so you can update before anyone notices.
+
+The idea came from an interview question that stumped me: how do you keep screenshots accurate when releases happen every two weeks? I didn't have a good answer then. This is my answer now.
+
+---
+
+## Why screenshots matter
+
+If you are a reader like me, you rely on screenshots to find your way. A visual aid tells you you are in the right place before you read a single word. For visual learners, screenshots are their way of navigating documentation.
+
+When they are wrong, there is a break on trust. The reader looks at the screen, looks at the doc, and they do not match. That moment of confusion is small but it adds up.
 
 ---
 
 ## How it works
 
-1. You keep reference screenshots in `screenshots/reference/` -- these are the screenshots currently in your docs
+1. You keep reference screenshots in `screenshots/reference/`, these are the screenshots currently in your docs
 2. On a schedule, the tool loads each product URL and captures the same region
 3. Claude Vision compares the live capture against your reference and identifies meaningful changes
 4. A report is generated listing what changed and what you need to do
-5. If anything needs updating, a GitHub Issue is created automatically (and updated on subsequent runs rather than creating duplicates)
+5. If anything needs updating, a GitHub Issue is created automatically and updated on subsequent runs
 
 ---
 
 ## Before you start
 
-You need two things:
+You need two things.
 
-**1. An Anthropic API key**
+**An Anthropic API key**
 
 - Go to [console.anthropic.com](https://console.anthropic.com)
 - Sign up or log in
@@ -27,9 +39,9 @@ You need two things:
 
 Keep this key private. You will add it to GitHub as a secret in the setup steps below.
 
-**2. Node.js installed**
+**Node.js installed**
 
-Download and install the LTS version from [nodejs.org](https://nodejs.org). This is free.
+Download and install the LTS version from [nodejs.org](https://nodejs.org). It is free.
 
 ---
 
@@ -77,9 +89,9 @@ screenshots:
     doc: "docs/getting-started.md"
 ```
 
-**Finding the right selector:** see [docs/selectors-guide.md](docs/selectors-guide.md)
+Not sure how to find the right selector? See [docs/selectors-guide.md](docs/selectors-guide.md).
 
-**Product requires login:** see [docs/auth-guide.md](docs/auth-guide.md)
+Product requires login? See [docs/auth-guide.md](docs/auth-guide.md).
 
 ### Step 5: Add your reference screenshots
 
@@ -96,7 +108,7 @@ The tool needs permission to create issues.
 
 ### Step 7: Run it manually to verify
 
-Go to the **Actions** tab in your repo, click **Screenshot Accuracy Check**, then click **Run workflow**. Check that it completes without errors and that the report artifact is downloadable from the run summary.
+Go to the **Actions** tab, click **Screenshot Accuracy Check**, then click **Run workflow**. Check that it completes without errors and that the report artifact is downloadable from the run summary.
 
 ---
 
@@ -108,6 +120,47 @@ npm run check
 ```
 
 The report is written to `report.md`. Live captures land in `screenshots/live/`.
+
+---
+
+## Setting a baseline for the first time
+
+No reference screenshots yet? Run the tool once. It will capture the live page and warn that no reference exists. Copy the live capture across to set your baseline:
+
+```bash
+cp screenshots/live/your-screenshot.png screenshots/reference/your-screenshot.png
+```
+
+Then run again. That is your starting point.
+
+---
+
+## Approving updated screenshots
+
+When the tool flags a screenshot as needing an update, fix the doc screenshot first. Then approve the new version as your baseline:
+
+```bash
+npm run approve -- dashboard-overview
+```
+
+To approve all live screenshots at once:
+
+```bash
+npm run approve -- all
+```
+
+To see all available IDs:
+
+```bash
+npm run approve
+```
+
+After approving, commit the updated reference file. This is part of the definition of done -- not optional:
+
+```bash
+git add screenshots/reference/dashboard-overview.png
+git commit -m "Update reference screenshot: Dashboard overview"
+```
 
 ---
 
@@ -127,21 +180,19 @@ Use [crontab.guru](https://crontab.guru) to build your own schedule. After chang
 
 ## Adjusting sensitivity
 
-The `sensitivity` setting in `config.yml` controls how much needs to change before the tool flags something:
-
 ```yaml
-sensitivity: low      # Major changes only (recommended starting point)
+sensitivity: low      # Major changes only -- recommended starting point
 sensitivity: medium   # Moderate changes including label and text differences
 sensitivity: high     # Any visible difference
 ```
 
-Start with `low` and adjust based on how many false positives you see in the first few runs.
+Start with `low`. Adjust based on how many false positives you see in the first few runs.
 
 ---
 
 ## Masking dynamic content
 
-If a captured region includes timestamps, user names, or other content that changes on every load, add those elements to the `mask` list for that entry:
+Some regions include timestamps, user names, or other content that changes on every load. Hide them before the screenshot is taken:
 
 ```yaml
 - id: dashboard-overview
@@ -150,8 +201,6 @@ If a captured region includes timestamps, user names, or other content that chan
     - ".last-updated"
     - ".user-avatar"
 ```
-
-These elements are hidden before the screenshot is taken.
 
 ---
 
@@ -167,22 +216,24 @@ Each comparison sends two screenshots to Claude Vision. Rough estimates with Cla
 
 ---
 
+## Limitations
+
+This tool works well for docs sets up to around 50 screenshots. Every screenshot needs a manual config entry with a CSS selector. That is a one-time setup cost per screenshot, not ongoing work, but it is worth knowing upfront.
+
+At larger scale, selector maintenance becomes the main overhead. If a product UI restructure changes class names or IDs, some selectors will break and need updating.
+
+---
+
 ## Troubleshooting
 
-**Selector not found error**
+**Selector not found**
 The CSS selector in your config does not match any element on that page. Open the URL in a browser and verify the selector using DevTools. See [docs/selectors-guide.md](docs/selectors-guide.md).
 
 **Authentication errors**
 If your product requires login, see [docs/auth-guide.md](docs/auth-guide.md). If you are using session auth, your session may have expired and needs to be regenerated.
 
 **API key error**
-Make sure `ANTHROPIC_API_KEY` is set correctly as a GitHub secret, and that it is referenced in the workflow file under `env`.
+Make sure `ANTHROPIC_API_KEY` is set correctly as a GitHub secret and referenced in the workflow file under `env`.
 
 **GitHub Issue not being created**
 Check that workflow write permissions are enabled under **Settings > Actions > General**.
-
----
-
-## Reference screenshots not added yet
-
-If you want to start tracking a page but do not have a reference screenshot yet, run the tool once -- it will capture the live page and warn that no reference exists. Copy the live capture from `screenshots/live/` into `screenshots/reference/` to set your baseline.
